@@ -41,7 +41,7 @@ server.get('/', (r, res) => { return res.send('<img src="https://i.imgur.com/Dzf
 
 server.get('/highscores', async (req, res) => {
     try {
-        const users = await Users.find({}, ['firstName', 'lastName','score'], { sort: { score: 1 }, limit: 50 });
+        const users = await Users.find({}, ['firstName', 'lastName','score'], { sort: { score: -1 }, limit: 50 });
         res.json(users);
     } catch (error) {
         console.log(error);
