@@ -29,6 +29,13 @@ const Refers = mongoose.model('Ref', {
     invitedBy: String,
 });
 
+const unique = (input) => {
+    var seen = {};
+    return input.filter(function(item) {
+        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+    });
+}
+
 
 server.get('/', (r, res) => { return res.send('<img src="https://i.imgur.com/DzfVJox.gif"/>')});
 
@@ -65,13 +72,13 @@ server.post('/refers', async (req, res) => {
             userData,
             { upsert: true, setDefaultsOnInsert: true, new: true }
         );
-    
+
         let excludes = await Refers.find({
             'email': { $in: req.body.rafEmails}
         });
         excludes = excludes.map(data => data.email);
     
-        const data = req.body.rafEmails.map((email) => {
+        const data = unique(req.body.rafEmails).map((email) => {
             if (excludes.includes(email)) {
                 return false;
             }
