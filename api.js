@@ -51,7 +51,7 @@ server.get('/highscores', async (req, res) => {
         };
 
         const users = await Users.find({}, ['firstName', 'lastName','score'], { sort: { score: -1 }, limit: 50 });
-        res.json({users, counts});
+        res.json({counts, users});
     } catch (error) {
         console.log(error);
         res.status(400).json({
@@ -81,7 +81,6 @@ server.post('/users', async (req, res) => {
             email: data.email
         });
     
-            console.log(u)
         if (u) {
             throw ('Email is already signed up for Early Access')
         }
