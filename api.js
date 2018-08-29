@@ -19,6 +19,10 @@ const Users = mongoose.model('User', {
         default: 0,
         type: Number
     },
+    type: {
+        type: String,
+        enum: ['raf', 'early-access']
+    }
 });
 
 const Refers = mongoose.model('Ref', {
@@ -41,8 +45,13 @@ server.get('/', (r, res) => { return res.send('<img src="https://i.imgur.com/Dzf
 
 server.get('/highscores', async (req, res) => {
     try {
+        const counts = {
+            raf: await Users.count({type: 'raf'}),
+            ea: await Users.count({type: 'early-access'})
+        };
+
         const users = await Users.find({}, ['firstName', 'lastName','score'], { sort: { score: -1 }, limit: 50 });
-        res.json(users);
+        res.json({users, counts});
     } catch (error) {
         console.log(error);
         res.status(400).json({
@@ -51,6 +60,46 @@ server.get('/highscores', async (req, res) => {
     }
 });
 
+// less complicated function
+server.post('/users', async (req, res) => {
+    try {
+        if (
+            !req.body ||
+            !req.body.email
+        ) {
+           throw 'Email is required';
+        }
+    
+        const data = {
+            email: req.body.email,
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            type: 'early-access'
+        };
+    
+        const u = await Users.findOne({
+            email: data.email
+        });
+    
+            console.log(u)
+        if (u) {
+            throw ('Email is already signed up for Early Access')
+        }
+
+        const user = new Users(data);
+        await user.save();
+
+        res.json({success:true, user});
+    } catch (error) {
+        console.log(error)
+        res.status(400).json({
+            success:false,
+            error: error || 'server error.'
+        });
+    }
+});
+
+// more complicated function
 server.post('/refers', async (req, res) => {
     try {
         if (
@@ -59,14 +108,11 @@ server.post('/refers', async (req, res) => {
             !(req.body.rafEmails && typeof(req.body.rafEmails) !== 'Object' && req.body.rafEmails.length) ||
             !req.body.firstName
         ) {
-            res.status(400).json({
-                success:false,
-                error: 'Bad Request'
-            });
+           throw('Bad Request');
         }
     
         // create or update user
-        const userData = {firstName: req.body.firstName, lastName: req.body.lastName, email: req.body.email};
+        const userData = {firstName: req.body.firstName, lastName: req.body.lastName, email: req.body.email, type: 'raf'};
         const user = await Users.findOneAndUpdate(
             { email: userData.email },
             userData,
@@ -107,9 +153,11 @@ server.post('/refers', async (req, res) => {
             notInvited: excludes,
         });
     } catch(error) {
+
         console.log(error);
         res.status(400).json({
-            error: 'Something went wrong.'
+            success: false,
+            error
         });
     }
     
