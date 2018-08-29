@@ -3,10 +3,25 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser')
 const server = new express();
+const mailchimp = require('mailchimp-api-v3')
+ 
+var mc = new mailchimp(process.env.BIZZY_MC);
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/bizzy-raf');
 server.use(cors());
 server.use(bodyParser());
+
+const addToList = async (u ,list = process.env.BIZZY_LIST) => {
+    return mc.post(`/lists/${list}/members`, {
+        email_address: u.email,
+        status: 'subscribed',
+        merge_fields: {
+            FNAMe: u.firstName || '',
+            LNAME: u.lastName || '',
+            TYPE: u.type || '',
+        }
+    });
+}
 
 const Users = mongoose.model('User', {
     firstName: String,
@@ -88,6 +103,8 @@ server.post('/users', async (req, res) => {
         const user = new Users(data);
         await user.save();
 
+        await addToList(data);
+
         res.json({success:true, user});
     } catch (error) {
         console.log(error)
@@ -138,6 +155,8 @@ server.post('/refers', async (req, res) => {
     
         user.score += data.length;
         await user.save();
+
+        await addToList(userData);
     
         res.json({
             success: true,
